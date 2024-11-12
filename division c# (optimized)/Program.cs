@@ -42,8 +42,8 @@ internal class Program
 
     public static void Test2()
     {
-        //DivisionTestRo.Test(new int[] { 5, 7, 23, 31 },
-        //    DivisionTestRo.TestType.Simple);
+        DivisionTestRo.Test(new int[] { 5, 7, 23, 31 },
+            DivisionTestRo.TestType.Simple);
 
         DivisionTestRo.Test(new int[] { 5, 7, 23, 31 },
             DivisionTestRo.TestType.Parallel);
@@ -65,10 +65,7 @@ internal class Program
 
         DivisionTestRo.Test(new int[] { 125, 127, 128, 7 },
             DivisionTestRo.TestType.ParallelMem);
-
-        //DivisionTestRo.Test(new int[] { 29, 32 },
-        //    DivisionTestRo.TestType.ParallelMem);
-
+        
         //DivisionTestRo.Test(new int[] { 125, 127, 128 },
         //    DivisionTestRo.TestType.ParallelMem);
 

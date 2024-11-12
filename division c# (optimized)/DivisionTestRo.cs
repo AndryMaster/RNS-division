@@ -6,7 +6,7 @@ namespace division;
 
 internal class DivisionTestRo : Division
 {
-    private const long randIters = 100_000_000;
+    private const long TestRandIters = 100_000_000;
 
     public enum TestType
     {
@@ -14,24 +14,17 @@ internal class DivisionTestRo : Division
         Parallel,
         ParallelToken,
         ParallelTokenRand,
-        ParallelSIMD,
+        // ParallelSIMD,
         ParallelMem,
     }
 
-    public static void initModules(int[] newModules)
-    {
-        modules = newModules;
-        P = 1;
-        foreach (int i in modules)
-            P *= i;
-    }
 
     public static void Test(int[] newModules, TestType tt=TestType.Simple, int roInit=0)
     {
         initModules(newModules);
 
         Console.Write($"\n\nP={P} ro=??? mods=[ ");  // {(int)Math.Pow(P, 0.5)}
-        foreach (int i in modules)
+        foreach (int i in Modules)
             Console.Write($"{i}, ");
         Console.WriteLine("]\n");
         Console.WriteLine(DateTime.Now.ToLongTimeString());
@@ -114,12 +107,12 @@ internal class DivisionTestRo : Division
 
                 case TestType.ParallelTokenRand:
 
-                    if (randIters > P*P / 10) {
+                    if (TestRandIters > P*P / 10) {
                         Console.WriteLine("AAAAAAAAAAAAAAAAAAAAAAA");
                         break; }
                     try
                     {
-                        Parallel.For(0, randIters / 10_000,
+                        Parallel.For(0, TestRandIters / 10_000,
                             new ParallelOptions { CancellationToken = token },
                             c =>
                             {
@@ -184,7 +177,6 @@ internal class DivisionTestRo : Division
                 new ParallelOptions { CancellationToken = token },
                 a =>
                 {
-                    long threadBad = 0;
                     for (long b = 1; b < P; b++)
                         if (divide_mem(mem[a], mem[b], (int)(memLog[a] - memLog[b]) + 1) != (a / b))
                         {

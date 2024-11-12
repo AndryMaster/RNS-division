@@ -6,30 +6,38 @@ namespace division;
 
 internal class Division
 {
-    public static int[] modules;
+    public static int[] Modules;
     public static long P = 1;
 
+    
+    public static void initModules(int[] newModules)
+    {
+        Modules = newModules;
+        P = 1;
+        foreach (int i in Modules)
+            P *= i;
+    }
 
     public static BigInteger[] calk_k(in int ro)
     {
-        long[] P_i = new long[modules.Length];
-        BigInteger[] m_i = new BigInteger[modules.Length];
+        long[] P_i = new long[Modules.Length];
+        BigInteger[] m_i = new BigInteger[Modules.Length];
 
-        for (int i = 0; i < modules.Length; i++)
+        for (int i = 0; i < Modules.Length; i++)
         {
-            P_i[i] = P / modules[i];
+            P_i[i] = P / Modules[i];
         }
 
-        for (int i = 0; i < modules.Length; i++)
+        for (int i = 0; i < Modules.Length; i++)
         {
 
             int m = 1;
             while (true)
             {
                 // Расширенный алгоритм Евклида
-                if (m * P_i[i] % modules[i] == 1)
+                if (m * P_i[i] % Modules[i] == 1)
                 {
-                    m_i[i] = m * BigInteger.Pow(2, ro) / modules[i];
+                    m_i[i] = m * BigInteger.Pow(2, ro) / Modules[i];
                     break;
                 }
                 m++;
@@ -40,10 +48,10 @@ internal class Division
 
     public static int[] mod(long n)
     {
-        int[] rns = new int[modules.Length];
+        int[] rns = new int[Modules.Length];
         n = Math.Abs(n);
-        for (int i = 0; i < modules.Length; i++)  // SIMD
-            rns[i] = (int)(n % modules[i]);
+        for (int i = 0; i < Modules.Length; i++)  // SIMD
+            rns[i] = (int)(n % Modules[i]);
         return rns;
     }
 
@@ -52,7 +60,7 @@ internal class Division
         BigInteger s = 0;
         int[] rns = mod(num);
 
-        for (int i = 0; i < modules.Length; i++)  // SIMD
+        for (int i = 0; i < Modules.Length; i++)  // SIMD
             s += rns[i] * k[i];
 
         return s - ((s >> ro) << ro);
