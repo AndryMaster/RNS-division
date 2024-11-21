@@ -2,28 +2,23 @@
 using System.Diagnostics;
 using System.Numerics;
 
-namespace division;
+namespace CUDA_division;
 
-internal class DivisionTestRo : Division
+internal class DivisionTestRoCpu : Division
 {
-    private const long TestRandIters = 100_000_000;
-
     public enum TestType
     {
         Simple,
-        Parallel,
         ParallelToken,
-        ParallelTokenRand,
-        // ParallelSIMD,
-        ParallelMem,
+        ParallelTokenMem,
     }
 
 
-    public static void Test(int[] newModules, TestType tt=TestType.Simple, int roInit=0)
+    public static void Test(int[] newModules, TestType tt=TestType.ParallelTokenMem, int roInit=0)
     {
         initModules(newModules);
 
-        Console.Write($"\n\nP={P} ro=??? mods=[ ");  // {(int)Math.Pow(P, 0.5)}
+        Console.Write($"\n\nP={P} ro=??? mods=[ ");
         foreach (int i in Modules)
             Console.Write($"{i}, ");
         Console.WriteLine("]\n");
@@ -33,7 +28,6 @@ internal class DivisionTestRo : Division
         Stopwatch swFull = new Stopwatch();
         swFull.Start();
 
-        //int ro = (int)Math.Pow(P, 0.4);
         int ro = roInit;
         BigInteger[] k;
 
@@ -62,21 +56,7 @@ internal class DivisionTestRo : Division
                                 countBad++;
                     break;
 
-
-                case TestType.Parallel:
-
-                    ParallelLoopResult resultParallel =
-                        Parallel.For(0, P, a =>
-                        {
-                            long threadBad = 0;
-                            for (long b = 1; b < P; b++)
-                                if (divide(a, b, ro, k) != (a / b)) threadBad++;
-                            resultCollection.Add(threadBad);
-                        });
-                    countBad = resultCollection.Sum();
-                    break;
-
-
+                
                 case TestType.ParallelToken:
 
                     try
@@ -86,8 +66,10 @@ internal class DivisionTestRo : Division
                             a =>
                             {
                                 long threadBad = 0;
+                                BigInteger Fa = F(a, ro, k);
+                                double aIters = BigInteger.Log(Fa, 2);
                                 for (long b = 1; b < P; b++)
-                                    if (divide(a, b, ro, k) != (a / b))
+                                    if (divide_half(Fa, b, aIters, ro, k) != (a / b))
                                     {
                                         cancelTokenSource.Cancel();
                                         break;
@@ -104,43 +86,8 @@ internal class DivisionTestRo : Division
                     }
                     break;
 
-
-                case TestType.ParallelTokenRand:
-
-                    if (TestRandIters > P*P / 10) {
-                        Console.WriteLine("AAAAAAAAAAAAAAAAAAAAAAA");
-                        break; }
-                    try
-                    {
-                        Parallel.For(0, TestRandIters / 10_000,
-                            new ParallelOptions { CancellationToken = token },
-                            c =>
-                            {
-                                long a, b;
-                                for (int i = 0; i < 10_000; i++)
-                                {
-                                    a = randNum.NextInt64(1, P);
-                                    b = randNum.NextInt64(1, P);
-                                    if (divide(a, b, ro, k) != (a / b))
-                                    {
-                                        cancelTokenSource.Cancel();
-                                        break;
-                                    }
-                                } 
-                            });
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        countBad = P * P;
-                    }
-                    finally
-                    {
-                        cancelTokenSource.Dispose();
-                    }
-                    break;
-
-
-                case TestType.ParallelMem:
+                
+                case TestType.ParallelTokenMem:
                     countBad = TestParallelMem(ro, k);
                     break;
             }
@@ -197,7 +144,7 @@ internal class DivisionTestRo : Division
         return countBad;
     }
 
-    protected static int divide_mem(in BigInteger Fa, in BigInteger Fb, int numIters)
+    private static int divide_mem(in BigInteger Fa, in BigInteger Fb, int numIters)
     {
         int result = 0;
         BigInteger delta = Fa;
@@ -215,25 +162,26 @@ internal class DivisionTestRo : Division
 
         return result;
     }
-
-    public static void ShowFValues(int[] newModules, long[] toShow, int ro)
+    
+    private static int divide_half(in BigInteger Fa, long b, double aIters, in int ro, in BigInteger[] k)
     {
-        initModules(newModules);
-        var k = calk_k(ro);
-        
-        Console.Write($"\n\nP={P} ro={ro}\nmods=[ ");
-        foreach (int i in Modules)
-            Console.Write($"{i}, ");
-        Console.Write("]\nk = [");
-        foreach (var i in k)
-            Console.Write($"{i}, ");
-        Console.WriteLine("]\n");
+        BigInteger Fb = F(b, ro, k);
+        int numIters = (int)(aIters - BigInteger.Log(Fb, 2.0)) + 1;
 
-        var list = toShow.ToList().Append(P - 1);
-        foreach (var i in list)
+        int result = 0;
+        BigInteger delta = Fa;
+
+        for (int i = numIters - 1; i >= 0; i--)
         {
-            var f = F(i, ro, k);
-            Console.WriteLine($"{Math.Round(BigInteger.Log(f, 2))} ({f})");
+            BigInteger oldDelta = delta;
+
+            delta -= Fb << i;
+            if (delta < 0)
+                delta = oldDelta;
+            else
+                result += 1 << i;
         }
+
+        return result;
     }
 }

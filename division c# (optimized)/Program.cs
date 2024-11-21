@@ -12,10 +12,11 @@ internal class Program
 {
     static void Main(string[] args)
     {
-        //Test1();
-        //Test2();
-        //Test3();
+        // Test1();
+        // Test2();
+        // Test3();
         Test4();
+        // Test5();
 
 
         //var test = new SIMD();
@@ -75,7 +76,24 @@ internal class Program
 
     public static void Test4()
     {
-        DivisionTestRo.Test(new int[] { 27, 29, 31, 32 },
+        // DivisionTestRo.Test(new int[] { 27, 29, 31, 32 },
+        //     DivisionTestRo.TestType.ParallelMem);
+        
+        // DivisionTestRo.Test(new int[] { 125, 127, 128 },
+        //     DivisionTestRo.TestType.ParallelMem);
+        
+        DivisionTestRo.Test(new int[] { 7, 125, 127, 128 },
             DivisionTestRo.TestType.ParallelMem);
+        
+        // DivisionTestRo.Test(new int[] { 123, 125, 127, 128 },
+        //     DivisionTestRo.TestType.ParallelMem);
+    }
+    
+    public static void Test5()
+    {
+        DivisionTestRo.ShowFValues(
+            new int[] { 125, 127, 128 },
+            new long[] { 0, 1, 10, 12, 1234, 123456 },
+            51);
     }
 }

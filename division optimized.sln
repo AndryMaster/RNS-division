@@ -5,6 +5,8 @@ VisualStudioVersion = 17.11.35222.181
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "division", "division c# (optimized)\division.csproj", "{EDA134EB-DDD4-4444-9FD1-EED08C76F8A2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CUDA division", "CUDA division\CUDA division.csproj", "{C4637AB6-168B-471F-B557-562AC04B920A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{EDA134EB-DDD4-4444-9FD1-EED08C76F8A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EDA134EB-DDD4-4444-9FD1-EED08C76F8A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EDA134EB-DDD4-4444-9FD1-EED08C76F8A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C4637AB6-168B-471F-B557-562AC04B920A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C4637AB6-168B-471F-B557-562AC04B920A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C4637AB6-168B-471F-B557-562AC04B920A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C4637AB6-168B-471F-B557-562AC04B920A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
