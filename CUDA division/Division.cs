@@ -4,11 +4,10 @@ using System.Numerics;
 
 namespace CUDA_division;
 
-internal class Division
+public class Division
 {
     public static int[] Modules;
     public static long P = 1;
-
     
     public static void initModules(int[] newModules)
     {
@@ -62,32 +61,5 @@ internal class Division
             s += rns[i] * k[i];
 
         return s - ((s >> ro) << ro);
-    }
-
-    public static int divide(long divisible, long quotient, in int ro, in BigInteger[] k)
-    {
-        BigInteger Fa = F(divisible, ro, k);
-        BigInteger Fb = F(quotient, ro, k);
-
-        if (Fa <= 0 || Fb <= 0)
-            return 0;
-
-        int numIters = (int)(BigInteger.Log(Fa, 2.0) - BigInteger.Log(Fb, 2.0)) + 1;
-
-        int result = 0;
-        BigInteger delta = Fa;
-
-        for (int i = numIters - 1; i >= 0; i--)
-        {
-            BigInteger oldDelta = delta;
-
-            delta -= Fb << i;
-            if (delta < 0)
-                delta = oldDelta;
-            else
-                result += 1 << i;
-        }
-
-        return result;  // int[] resultRNS = mod(result);
     }
 }

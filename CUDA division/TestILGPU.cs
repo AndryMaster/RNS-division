@@ -26,8 +26,8 @@ public class TestILGPU
         using var context = Context.CreateDefault();
         foreach (Device device in context) Console.WriteLine(device);
         
-        var accelerator = context.CreateCudaAccelerator(0);
-        // var accelerator = context.CreateCPUAccelerator(0);
+        // var accelerator = context.CreateCudaAccelerator(0);
+        var accelerator = context.CreateCPUAccelerator(0);
         accelerator.PrintInformation();
         
         var kernel = accelerator.LoadAutoGroupedStreamKernel<
@@ -39,7 +39,7 @@ public class TestILGPU
         using var bufferOut = accelerator.Allocate1D<long>(a.Length);
         
         buffer.CopyFromCPU(a);
-        kernel((int)buffer.Length, buffer.View, bufferOut.View);
+        kernel(a.Length, buffer.View, bufferOut.View);
         accelerator.Synchronize();
         
         var data = bufferOut.GetAsArray1D();
@@ -62,9 +62,14 @@ public class TestILGPU
         ArrayView<long> data,
         ArrayView<long> output)
     {
-        if (index == 5) return;
-        Interop.WriteLine("Line {0}: {1}", index, data[index]);
-        output[index] = X2(data[index]);
+        Interop.WriteLine("Line {0}: {1}", index.X, data[index.X]);
+        // output[index] = X2(data[index]);
+        for (int i = 0; i < 1000; i++)
+        {
+            output[index] += data[index];
+        }
+        
+        output[index] = output[index] / 100;
     }
 
     private static long X2(long x)

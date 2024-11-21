@@ -12,8 +12,7 @@ internal class DivisionTestRoCpu : Division
         ParallelToken,
         ParallelTokenMem,
     }
-
-
+    
     public static void Test(int[] newModules, TestType tt=TestType.ParallelTokenMem, int roInit=0)
     {
         initModules(newModules);
@@ -183,5 +182,32 @@ internal class DivisionTestRoCpu : Division
         }
 
         return result;
+    }
+    
+    public static int divide(long divisible, long quotient, in int ro, in BigInteger[] k)
+    {
+        BigInteger Fa = F(divisible, ro, k);
+        BigInteger Fb = F(quotient, ro, k);
+
+        if (Fa <= 0 || Fb <= 0)
+            return 0;
+
+        int numIters = (int)(BigInteger.Log(Fa, 2.0) - BigInteger.Log(Fb, 2.0)) + 1;
+
+        int result = 0;
+        BigInteger delta = Fa;
+
+        for (int i = numIters - 1; i >= 0; i--)
+        {
+            BigInteger oldDelta = delta;
+
+            delta -= Fb << i;
+            if (delta < 0)
+                delta = oldDelta;
+            else
+                result += 1 << i;
+        }
+
+        return result;  // int[] resultRNS = mod(result);
     }
 }
