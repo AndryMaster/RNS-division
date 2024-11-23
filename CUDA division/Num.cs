@@ -90,32 +90,33 @@ public struct MInt128
     }
 }
 
-public struct MInt64
-{
-    public ulong num;
-
-    public MInt64()
-    {
-        this.num = 0;
-    }
-    public MInt64(ulong num)
-    {
-        this.num = num;
-    }
-    public MInt64(BigInteger number)
-    {
-        this.num = (ulong)number;
-    }
-
-    public static MInt64 operator +(MInt64 a, MInt64 b)
-    {
-        a.num += b.num;
-        return a;
-    }
-
-    [NotInsideKernel]
-    public override string ToString()
-    {
-        return num.ToString(CultureInfo.InvariantCulture);
-    }
-}
+// // Using "ulong" type instead "MInt64"
+// public struct MInt64
+// {
+//     public ulong num;
+//
+//     public MInt64()
+//     {
+//         this.num = 0;
+//     }
+//     public MInt64(ulong num)
+//     {
+//         this.num = num;
+//     }
+//     public MInt64(BigInteger number)
+//     {
+//         this.num = (ulong)number;
+//     }
+//
+//     public static MInt64 operator +(MInt64 a, MInt64 b)
+//     {
+//         a.num += b.num;
+//         return a;
+//     }
+//
+//     [NotInsideKernel]
+//     public override string ToString()
+//     {
+//         return num.ToString(CultureInfo.InvariantCulture);
+//     }
+// }

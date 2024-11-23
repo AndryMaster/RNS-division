@@ -16,7 +16,7 @@ public class DivisionTestRoGpu : Division
         CPU,
     }
     
-    public enum TestType
+    public enum TypeTest
     {
         Parallel,
         ParallelMem,
@@ -24,7 +24,7 @@ public class DivisionTestRoGpu : Division
         ParallelTokenMem,
     }
     
-    public static void Test(int[] newModules, TestType tt=TestType.ParallelMem, int roInit=0)
+    public static void Test(int[] newModules, TypeTest tt=TypeTest.ParallelMem, int roInit=0)
     {
         initModules(newModules);
         
@@ -44,9 +44,9 @@ public class DivisionTestRoGpu : Division
         Stopwatch sw = new Stopwatch();
         Stopwatch swFull = new Stopwatch();
         swFull.Start();
-
         
-        int ro = roInit;
+        // int ro = roInit;
+        int ro = 0;
         BigInteger[] k;
 
         long countBad = 1;
@@ -66,31 +66,58 @@ public class DivisionTestRoGpu : Division
                     memLog[i] = BigInteger.Log(tmp, 2);
                 });
             Console.Write("*");
-            
-            var bufferF = accelerator.Allocate1D<ulong>(P);
-            var bufferSize = accelerator.Allocate1D<double>(P);
-            var bufferResult = accelerator.Allocate1D<double>(P);
 
+            // for (int i = 0; i < 20; i++)
+            // {
+            //     Console.Write($"{mem[i]}, ");
+            // } Console.WriteLine();
+            // return;
+            
+            // var bufferF = accelerator.Allocate1D<ulong>(P);
+            // var bufferSize = accelerator.Allocate1D<double>(P);
+            // var bufferResult = accelerator.Allocate1D<double>(P);
+            //
+            // var kernel = accelerator.LoadAutoGroupedStreamKernel<
+            //     Index1D, long,
+            //     ArrayView<ulong>,
+            //     ArrayView<double>,
+            //     ArrayView<double>>(KernelMem1D);
+            // kernel((int)P, P, bufferF.View, bufferSize.View, bufferResult.View);
+            //
+            // var res = bufferResult.GetAsArray1D();
+            // double r = 0;
+            // foreach ( var i in res )
+            // {
+            //     if (i > 0) r += i;
+            // }
+            // // Console.Write($" {res.Length} {(double)r/res.Length} ");
+            // countBad = (long)((double)P * P - r);
+            //
+            // bufferF.Dispose();
+            // bufferSize.Dispose();
+            // bufferResult.Dispose();
+            
+            var tmp = new List<long>();
+            foreach (long i in k) tmp.Add(i);
+            var longK = tmp.ToArray();
+            
+            var bufferMods = accelerator.Allocate1D<int>(Modules.Length);
+            var bufferKVal = accelerator.Allocate1D<long>(Modules.Length);
+            var bufferRes = accelerator.Allocate1D<ulong>(P);
+            bufferMods.CopyFromCPU(Modules);
+            bufferKVal.CopyFromCPU(longK);
+            
             var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                Index2D,
-                ArrayView<ulong>,
-                ArrayView<double>,
-                ArrayView<double>>(KernelMem2D);
-            kernel(new Index2D((int)P, (int)P), bufferF.View, bufferSize.View, bufferResult.View);
+                             Index1D, 
+                             long, ArrayView<int>,
+                             ArrayView<long>, int,
+                             ArrayView<ulong>>(KernelF);
+            kernel((int)P, P, bufferMods.View, bufferKVal.View, ro, bufferRes.View);
 
-            var res = bufferResult.GetAsArray1D();
-            int r = 0;
-            foreach ( var i in res )
-            {
-                if ( i == 1 ) r++;
-            }
-            Console.Write($" {res.Length} {(double)r/res.Length} ");
-            countBad = res.Length - r;
-            
-            bufferF.Dispose();
-            bufferSize.Dispose();
-            bufferResult.Dispose();
-            
+            bufferRes.Dispose();
+            bufferKVal.Dispose();
+            bufferMods.Dispose();
+
             sw.Stop();
             Console.WriteLine($"Ro={ro}\tTime={sw.ElapsedMilliseconds} ms \t" +
                 $"Bad={countBad} (All={P * P}) \t" +
@@ -100,40 +127,104 @@ public class DivisionTestRoGpu : Division
         Console.WriteLine($"Full time: {swFull.ElapsedMilliseconds} ms");
         Console.WriteLine(DateTime.Now.ToLongTimeString());
     }
-
-    private static void KernelMem2D(
-        Index2D index,
-        ArrayView<ulong> dataF,
-        ArrayView<double> dataSize,
-        ArrayView<double> result)
+    
+    // private static void KernelBest1D(
+    //     Index1D index, long pval, long offset,
+    //     int[] mods, long[] k, int ro,
+    //     ArrayView<int> result)
+    // {
+    //     long indexX = index.X + offset;
+    //     
+    //     long Fa = Fval(indexX, ro, mods, k);
+    //     long delta, deltaTmp;
+    //     long res;
+    //
+    //     for (int indexY = 1; indexY < pval; indexY++)
+    //     {
+    //         long Fb = Fval(indexY, ro, mods, k);
+    //         int numIters = 5;  ///////////////////////////////
+    //
+    //         res = 0;
+    //         delta = Fa;
+    //         for (int i = numIters; i >= 0; i--)
+    //         {
+    //             deltaTmp = delta;
+    //             delta -= Fb << i;
+    //
+    //             if (delta > deltaTmp)
+    //             {
+    //                 delta = deltaTmp;
+    //             } 
+    //             else
+    //             {
+    //                 res += 1L << i;
+    //             }
+    //         }
+    //         if ((indexX / indexY) != res)
+    //         {
+    //             result[0] = 1;
+    //             Interop.WriteLine("x {0}  x {1}  A {2}  B {3}", indexX, indexY, Fa, Fb);
+    //         }
+    //     }
+    //     // result[index.X] = (double)countBad / pval;
+    // }
+    
+    private static void KernelF(
+        Index1D index, long pval,
+        ArrayView<int> mods, ArrayView<long> k, int ro,
+        ArrayView<ulong> result)
     {
-        // Interop.WriteLine("Line {0}: {1}", index.X, data[index.X]);
-        if (index.Y == 0) return;
-
-        ulong Fa = dataF[index.X];
-        ulong Fb = dataF[index.Y];
-        int numIters = (int)(dataSize[index.X] - dataSize[index.Y]);
-
-        long res = 0;
-        ulong delta = Fa;
-        ulong deltaTmp;
-
-
-        for (int i = numIters; i >= 0; i--)
-        {
-            deltaTmp = delta;
-            delta -= Fb << i;
-
-            if (delta > deltaTmp)
-            {
-                delta = deltaTmp;
-            } 
-            else
-            {
-                res += 1L << i;
-            }
-        }
-
-        result[index.X] = (res == index.X / index.Y) ? 1:0;
+        result[index] = (ulong)Fval(index, ro, mods, k);
     }
+
+    static long Fval(long num, int ro, ArrayView<int> mods, ArrayView<long> k)
+    {
+        int[] rns = new int[mods.Length];
+        for (int i = 0; i < mods.Length; i++)
+            rns[i] = (int)(num % mods[i]);
+        
+        long s = 0;
+        for (int i = 0; i < Modules.Length; i++)
+            s += rns[i] * k[i];
+
+        return s - ((s >> ro) << ro);
+    }
+
+    // private static void KernelMem1D(
+    //     Index1D index, long pval,
+    //     ArrayView<ulong> dataF,
+    //     ArrayView<double> dataSize,
+    //     ArrayView<double> result)
+    // {
+    //     ulong Fa = dataF[index.X];
+    //     ulong delta, deltaTmp;
+    //     long res, countBad = 0;
+    //
+    //     for (int indexxY = 1; indexxY < pval; indexxY++)
+    //     {
+    //         ulong Fb = dataF[indexxY];
+    //         int numIters = (int)(dataSize[index.X] - dataSize[indexxY]);
+    //
+    //         res = 0;
+    //         delta = Fa;
+    //         for (int i = numIters; i >= 0; i--)
+    //         {
+    //             deltaTmp = delta;
+    //             delta -= Fb << i;
+    //
+    //             if (delta > deltaTmp)
+    //             {
+    //                 delta = deltaTmp;
+    //             } 
+    //             else
+    //             {
+    //                 res += 1L << i;
+    //             }
+    //         }
+    //         // Group.Barrier();  //
+    //         if ((index.X / indexxY) != res) countBad++;
+    //     }
+    //     
+    //     result[index.X] = (double)countBad / pval;
+    // }
 }
