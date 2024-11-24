@@ -2,6 +2,7 @@
 using ILGPU.Runtime.Cuda;
 using System.Globalization;
 using System.Numerics;
+using ILGPU.IR.Intrinsics;
 
 namespace CUDA_division;
 
@@ -14,6 +15,11 @@ public struct MInt128
         this.hi = 0;
         this.lo = 0;
     }
+    public MInt128(int value) => this.lo = (ulong)value;
+    public MInt128(uint value) => this.lo = value;
+    public MInt128(long value) => this.lo = (ulong)value;
+    public MInt128(ulong value) => this.lo = value;
+
     public MInt128(ulong hi, ulong lo)
     {
         this.hi = hi;
@@ -56,6 +62,24 @@ public struct MInt128
 
         return a;
     }
+    
+    public static MInt128 operator >>(MInt128 a, int b)  // a >> b (a >>= b)
+    {
+        a.lo >>= b;
+        a.lo |= a.hi << (64 - b);
+        a.hi >>= b;
+
+        return a;
+    }
+    
+    public static MInt128 operator *(MInt128 a, uint b)  // a * b (a *= b)
+    {
+        ulong tmp = (a.lo >> 32) * b;
+        a.hi = a.hi * b + (tmp >> 32);
+        a.lo *= b;
+
+        return a;
+    }
 
     public static bool operator >(MInt128 a, MInt128 b)  // a > b
     {
@@ -79,6 +103,15 @@ public struct MInt128
     {
         return !(a == b);
     }
+
+    public static int LeadingZeroCount(MInt128 a)
+    {
+        if (a.hi != 0)
+            return IntrinsicMath.BitOperations.LeadingZeroCount(a.hi);
+        return IntrinsicMath.BitOperations.LeadingZeroCount(a.lo) + 64;
+    }
+    
+    public static explicit operator MInt128(BigInteger value) => new MInt128(value);
 
     [NotInsideKernel]
     public override string ToString()

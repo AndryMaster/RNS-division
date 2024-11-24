@@ -13,7 +13,7 @@ internal class DivisionTestRoCpu : Division
         ParallelTokenMem,
     }
     
-    public static void Test(int[] newModules, TestType tt=TestType.ParallelTokenMem, int roInit=0)
+    public static void Test(uint[] newModules, TestType tt=TestType.ParallelTokenMem, int roInit=0)
     {
         initModules(newModules);
 
@@ -65,10 +65,10 @@ internal class DivisionTestRoCpu : Division
                             a =>
                             {
                                 long threadBad = 0;
-                                BigInteger Fa = F(a, ro, k);
-                                double aIters = BigInteger.Log(Fa, 2);
+                                // BigInteger Fa = F(a, ro, k);
+                                // double aIters = BigInteger.Log(Fa, 2);
                                 for (long b = 1; b < P; b++)
-                                    if (divide_half(Fa, b, aIters, ro, k) != (a / b))
+                                    if (divide(a, b, ro, k) != (a / b))
                                     {
                                         cancelTokenSource.Cancel();
                                         break;
@@ -103,13 +103,16 @@ internal class DivisionTestRoCpu : Division
 
     protected static long TestParallelMem(int ro, BigInteger[] k)
     {
-        var memLog = new double[P];
+        var memLog = new int[P];
         var mem = new BigInteger[P];
         Parallel.For(0, P,
             i =>
             {
                 mem[i] = F(i, ro, k);
-                memLog[i] = BigInteger.Log(mem[i], 2);
+                // memLog[i] = BigInteger.Log(mem[i], 2);
+                // memLog[i] = Math.Max(0, (int)BigInteger.Log(mem[i], 2) + 1);
+                if (mem[i] == 0) memLog[i] = 0;
+                else memLog[i] = (int)BigInteger.Log2(mem[i]) + 1;
             });
         Console.Write("*");
 
@@ -124,7 +127,7 @@ internal class DivisionTestRoCpu : Division
                 a =>
                 {
                     for (long b = 1; b < P; b++)
-                        if (divide_mem(mem[a], mem[b], (int)(memLog[a] - memLog[b]) + 1) != (a / b))
+                        if (divide_mem(mem[a], mem[b], (memLog[a] - memLog[b])) != (a / b))
                         {
                             cancelTokenSource.Cancel();
                             break;
@@ -148,7 +151,7 @@ internal class DivisionTestRoCpu : Division
         int result = 0;
         BigInteger delta = Fa;
 
-        for (int i = numIters - 1; i >= 0; i--)
+        for (int i = numIters; i >= 0; i--)
         {
             BigInteger deltaTmp = delta;
             delta -= Fb << i;
@@ -162,27 +165,27 @@ internal class DivisionTestRoCpu : Division
         return result;
     }
     
-    private static int divide_half(in BigInteger Fa, long b, double aIters, in int ro, in BigInteger[] k)
-    {
-        BigInteger Fb = F(b, ro, k);
-        int numIters = (int)(aIters - BigInteger.Log(Fb, 2.0)) + 1;
-
-        int result = 0;
-        BigInteger delta = Fa;
-
-        for (int i = numIters - 1; i >= 0; i--)
-        {
-            BigInteger oldDelta = delta;
-
-            delta -= Fb << i;
-            if (delta < 0)
-                delta = oldDelta;
-            else
-                result += 1 << i;
-        }
-
-        return result;
-    }
+    // private static int divide_half(in BigInteger Fa, long b, double aIters, in int ro, in BigInteger[] k)
+    // {
+    //     BigInteger Fb = F(b, ro, k);
+    //     int numIters = (int)(aIters - BigInteger.Log(Fb, 2.0)) + 1; /////
+    //
+    //     int result = 0;
+    //     BigInteger delta = Fa;
+    //
+    //     for (int i = numIters - 1; i >= 0; i--)
+    //     {
+    //         BigInteger oldDelta = delta;
+    //
+    //         delta -= Fb << i;
+    //         if (delta < 0)
+    //             delta = oldDelta;
+    //         else
+    //             result += 1 << i;
+    //     }
+    //
+    //     return result;
+    // }
     
     public static int divide(long divisible, long quotient, in int ro, in BigInteger[] k)
     {
@@ -192,12 +195,16 @@ internal class DivisionTestRoCpu : Division
         if (Fa <= 0 || Fb <= 0)
             return 0;
 
-        int numIters = (int)(BigInteger.Log(Fa, 2.0) - BigInteger.Log(Fb, 2.0)) + 1;
+        // int numIters = (int)(BigInteger.Log(Fa, 2.0) - BigInteger.Log(Fb, 2.0)) + 1;
+        int numIters, logA = 0, logB = 0;
+        if (Fa != 0) logA = (int)BigInteger.Log2(Fa) + 1;
+        if (Fb != 0) logB = (int)BigInteger.Log2(Fb) + 1;
+        numIters = logA - logB;
 
         int result = 0;
         BigInteger delta = Fa;
 
-        for (int i = numIters - 1; i >= 0; i--)
+        for (int i = numIters; i >= 0; i--)
         {
             BigInteger oldDelta = delta;
 

@@ -18,6 +18,11 @@ public class TestNum
         var c = a + b;
         Console.WriteLine(c - a == b);
         Console.WriteLine(c.hi);
+        
+        a = new MInt128(123, (127ul<<60) + 123);
+        Console.WriteLine(a * 2);
+        Console.WriteLine(a * 2 == a + a);
+        Console.WriteLine(a * 100 - a * 97 == a + a + a);
 
 
         //ushort a1 = (ushort)45;

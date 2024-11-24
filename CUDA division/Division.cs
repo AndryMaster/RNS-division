@@ -6,30 +6,32 @@ namespace CUDA_division;
 
 public class Division
 {
-    public static int[] Modules;
+    public static uint[] Modules;
     public static long P = 1;
+    public static ulong Pulong = 1;
     
-    public static void initModules(int[] newModules)
+    public static void initModules(uint[] newModules)
     {
-        Modules = newModules;
+        Modules = newModules.Order().ToArray();
         P = 1;
-        foreach (int i in Modules)
+        foreach (var i in Modules)
             P *= i;
+        Pulong = (ulong)P;
     }
 
     public static BigInteger[] calk_k(in int ro)
     {
-        long[] P_i = new long[Modules.Length];
+        ulong[] P_i = new ulong[Modules.Length];
         BigInteger[] m_i = new BigInteger[Modules.Length];
 
         for (int i = 0; i < Modules.Length; i++)
         {
-            P_i[i] = P / Modules[i];
+            P_i[i] = Pulong / Modules[i];
         }
 
         for (int i = 0; i < Modules.Length; i++)
         {
-            int m = 1;
+            uint m = 1;
             while (true)
             {
                 if (m * P_i[i] % Modules[i] == 1)
@@ -47,7 +49,7 @@ public class Division
     {
         int[] rns = new int[Modules.Length];
         n = Math.Abs(n);
-        for (int i = 0; i < Modules.Length; i++)  // SIMD
+        for (int i = 0; i < Modules.Length; i++)
             rns[i] = (int)(n % Modules[i]);
         return rns;
     }
@@ -57,7 +59,7 @@ public class Division
         BigInteger s = 0;
         int[] rns = mod(num);
 
-        for (int i = 0; i < Modules.Length; i++)  // SIMD
+        for (int i = 0; i < Modules.Length; i++)
             s += rns[i] * k[i];
 
         return s - ((s >> ro) << ro);
