@@ -228,15 +228,6 @@ public class DivisionTestRoGpu : Division
         result[index] = failsDiv;
     }
     
-    private static void KernelF64(
-        Index1D index, ulong pval, int ro, int modLen,
-        Values8ToGpu32 mg, Values8ToGpu64 kg, ArrayView<ulong> result)
-    {
-        ulong res = Fval64(index, ro, modLen, mg, kg);
-        int a = 64 - IntrinsicMath.BitOperations.LeadingZeroCount(res);
-        result[index] = (ulong)a;
-    }
-    
     private static MInt128 Fval128(long num, int ro, int len, Values8ToGpu32 mg, Values8ToGpu128 kg)
     {
         MInt128 s = new();
@@ -269,6 +260,14 @@ public class DivisionTestRoGpu : Division
         return s - ((s >> ro) << ro);
     }
 
+    // private static void KernelF64(
+    //     Index1D index, ulong pval, int ro, int modLen,
+    //     Values8ToGpu32 mg, Values8ToGpu64 kg, ArrayView<ulong> result)
+    // {
+    //     ulong res = Fval64(index, ro, modLen, mg, kg);
+    //     int a = 64 - IntrinsicMath.BitOperations.LeadingZeroCount(res);
+    //     result[index] = (ulong)a;
+    // }
     // private static void KernelBest1D(
     //     Index1D index, long pval, long offset,
     //     int[] mods, long[] k, int ro,

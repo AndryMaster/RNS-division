@@ -2,6 +2,9 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using ILGPU;
+using ILGPU.Algorithms;
+using ILGPU.Algorithms.ScanReduceOperations;
+using ILGPU.Algorithms.Optimization;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
@@ -14,60 +17,68 @@ public class TestILGPU
 {
     public static void Test() {
         var rand = new Random();
-        var a = new long[768*800];
-        // var b = new long[1<<10];
-
-        for (int i = 0; i < a.Length; i++)
-        {
-            a[i] = rand.Next() % 100;
-            // b[i] = rand.Next() % 10;
-        }
-
-        var s = Stopwatch.StartNew();
+        var a = new int[1<<10];
+        for (int i = 0; i < a.Length; i++) a[i] = rand.Next() % 100;
         
+        var s = Stopwatch.StartNew();
         s.Restart();
+        
         using var context = Context.CreateDefault();
         foreach (Device device in context) Console.WriteLine(device);
 
-        var accelerator = context.CreateCudaAccelerator(0);
-        //var accelerator = context.CreateCLAccelerator(0);
-        // var accelerator = context.CreateCPUAccelerator(0);
+        // var accelerator = context.CreateCudaAccelerator(0);
+        var accelerator = context.CreateCPUAccelerator(0);
         accelerator.PrintInformation();
-
-        //var groupSize = Math.Min(accelerator.MaxNumThreadsPerGroup, 128);
-        //KernelConfig config = ((a.Length + groupSize - 1) / groupSize, groupSize);
-
-        //var kernel = accelerator.LoadStreamKernel
-        //    <ArrayView<long>, ArrayView<long>, ArrayView<long>> (Kernel_3);
-        //kernel(config, bufferA.View, bufferB.View, bufferOut.View);
+            
+        var buffer = accelerator.Allocate1D<int>(a.Length);
+        buffer.CopyFromCPU(a);
+        
+        St1 st1 = new St1();
+        unsafe
+        {
+            for (int i = 0; i < 5; i++) st1.Values[i] = 100 * (ulong)i;
+        }
 
         var kernel = accelerator.LoadAutoGroupedStreamKernel
-            <Index1D, ArrayView<long>, ArrayView<long>, ArrayView<long>>(Kernel_4);
+            <Index1D, ArrayView<int>, St1>(Kernel_5);
+        kernel(a.Length, buffer.View, st1);
 
-        using var bufferA = accelerator.Allocate1D<long>(a.Length);
-        using var bufferConf = accelerator.Allocate1D<long>(10);
-        using var bufferOut = accelerator.Allocate1D<long>(a.Length);
-
-        bufferA.CopyFromCPU(a);
-        bufferConf.MemSetToZero();
-        kernel(a.Length, bufferA.View, bufferConf.View, bufferOut.View);
-        accelerator.Synchronize();
-
-        var data = bufferOut.GetAsArray1D();
-        for (int i = 0; i < 3; i++)
+        // Reads data from the GPU buffer into a new CPU array.
+        // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
+        // that the kernel and memory copy are completed first.
+        var data = buffer.GetAsArray1D();
+        for (int i = 0; i < 10; ++i)
         {
-            for (int j = 0; j < 10; j++)
-            {
-                if (i == 0) Console.Write(a[j] + " ");
-                if (i == 1) Console.Write(data[j] + " ");
-                // if (i == 2) Console.Write(b[j] + " ");
-            } Console.WriteLine();
+            Console.Write(data[i] + ", ");
         }
         
-        var conf = bufferConf.GetAsArray1D();
-        foreach (var elem in conf)
-            Console.Write(elem + " ");
-        Console.WriteLine();
+        // var kernel = accelerator.LoadAutoGroupedStreamKernel
+        //     <Index1D, ArrayView<long>, ArrayView<long>, ArrayView<long>>(Kernel_4);
+        //
+        // using var bufferA = accelerator.Allocate1D<long>(a.Length);
+        // using var bufferConf = accelerator.Allocate1D<long>(10);
+        // using var bufferOut = accelerator.Allocate1D<long>(a.Length);
+        //
+        // bufferA.CopyFromCPU(a);
+        // bufferConf.MemSetToZero();
+        // kernel(a.Length, bufferA.View, bufferOut.View);
+        // accelerator.Synchronize();
+        //
+        // var data = bufferOut.GetAsArray1D();
+        // for (int i = 0; i < 3; i++)
+        // {
+        //     for (int j = 0; j < 10; j++)
+        //     {
+        //         if (i == 0) Console.Write(a[j] + " ");
+        //         if (i == 1) Console.Write(data[j] + " ");
+        //         // if (i == 2) Console.Write(b[j] + " ");
+        //     } Console.WriteLine();
+        // }
+        //
+        // var conf = bufferConf.GetAsArray1D();
+        // foreach (var elem in conf)
+        //     Console.Write(elem + " ");
+        // Console.WriteLine();
 
         Console.WriteLine("IL GPU ms: " + s.ElapsedMilliseconds);
     }
@@ -155,6 +166,19 @@ public class TestILGPU
         
         
         output[index] = (a[index] << 5 / 187) + (a[index] / 7) + Group.IdxX;
+    }
+    
+    private static unsafe void Kernel_5(Index1D index, ArrayView<int> data, St1 st1)
+    {
+        var a = new MInt128(st1.Values[index % St1.MaxValSize],
+            st1.Values[(index + 1) % St1.MaxValSize]);
+        data[index] = (int)(a.lo + a.hi);
+    }
+
+    public unsafe struct St1
+    {
+        public const int MaxValSize = 5;
+        public fixed ulong Values[MaxValSize];
     }
 
     private static long X2(long x) => x << 1;

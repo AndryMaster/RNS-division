@@ -24,6 +24,32 @@ public class TestNum
         Console.WriteLine(a * 2 == a + a);
         Console.WriteLine(a * 100 - a * 97 == a + a + a);
 
+        Fixed8Struct32 af = new Fixed8Struct32(new uint[] { 1, 2, 3, 4, 5 });
+        for (int i = 0; i < 8; i++)
+        {
+            unsafe
+            {
+                Console.Write(af.Values[i] + ", ");
+            }
+        }  Console.WriteLine();
+        
+        Fixed8Struct64 bf = new Fixed8Struct64(new ulong[] { 1, 2, 3, 4, 5, 6 });
+        for (int i = 0; i < 8; i++)
+        {
+            unsafe
+            {
+                Console.Write(af.Values[i] + ", ");
+            }
+        }Console.WriteLine();
+        
+        Fixed8Struct128 cf = new Fixed8Struct128(new MInt128[] { new MInt128(11), new MInt128(22), new MInt128(33), new MInt128(44) });
+        for (int i = 0; i < 8; i++)
+        {
+            unsafe
+            {
+                Console.Write(af.Values[i] + ", ");
+            }
+        }Console.WriteLine();
 
         //ushort a1 = (ushort)45;
         //Console.WriteLine(a1);
