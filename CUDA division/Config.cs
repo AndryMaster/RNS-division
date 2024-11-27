@@ -1,4 +1,6 @@
-﻿namespace CUDA_division;
+﻿using System.Runtime.InteropServices;
+
+namespace CUDA_division;
 
 public struct Values8ToGpu32(
     uint m1 = 0, uint m2 = 0, uint m3 = 0, uint m4 = 0,
@@ -22,10 +24,71 @@ public struct Values8ToGpu128(
 }
 
 // [StructLayout(LayoutKind.Explicit)]
-// unsafe struct headerUnion                  // 2048 bytes in header
+// struct Val8Gpu32
 // {
 //     [FieldOffset(0)]
-//     public fixed byte headerBytes[2048];      
-//     [FieldOffset(0)]
-//     public headerLayout header; 
+//     [MarshalAs(UnmanagedType.ByValArray, SizeConst=8)] public required uint[] s1;
+//     
 // }
+// [System.Runtime.CompilerServices.InlineArray(10)]
+
+public unsafe struct Fixed8Struct32
+{
+    private const int MaxValSize = 8;
+    public fixed uint Values[MaxValSize];
+
+    public Fixed8Struct32(uint[] values, uint defaultValue = 0u)
+    {
+        for (int i = 0; i < Math.Min(MaxValSize, values.Length); i++)
+        {
+            if (values.Length < i)
+                Values[i] = values[i];
+            else
+                Values[i] = defaultValue;
+        }
+    }
+}
+    
+public unsafe struct Fixed8Struct64
+{
+    private const int MaxValSize = 8;
+    public fixed ulong Values[MaxValSize];
+
+    public Fixed8Struct64(ulong[] values, uint defaultValue = 0u)
+    {
+        for (int i = 0; i < Math.Min(MaxValSize, values.Length); i++)
+        {
+            if (values.Length < i)
+                Values[i] = values[i];
+            else
+                Values[i] = defaultValue;
+        }
+    }
+}
+    
+public unsafe struct Fixed8Struct128
+{
+    private const int MaxValSize = 8*2;
+    public fixed ulong Values[MaxValSize];
+
+    public Fixed8Struct128(MInt128[] values)
+    {
+        var defaultValue = new MInt128(0, 0);
+        
+        for (int i = 0; i < Math.Min(MaxValSize/2, values.Length)/2; i++)
+        {
+            if (values.Length < i)
+            {
+                Values[i*2] = values[i].hi;
+                Values[i*2+1] = values[i].lo;
+            }
+            else
+            {
+                Values[i*2] = defaultValue.hi;
+                Values[i*2+1] = defaultValue.lo;
+            }
+        }
+    }
+    
+    public MInt128 this[int i] => new MInt128(Values[i*2], Values[i*2+1]);
+}

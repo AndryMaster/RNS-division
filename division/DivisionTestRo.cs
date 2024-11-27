@@ -9,7 +9,7 @@ namespace division;
 
 public class DivisionTestRo : Division
 {
-    private const int MyGroupSize = 768 * 1;
+    private const int MyGroupSize = 768 * 2;
     
     public static void Test(uint[] newModules, bool useFast=false)
     {
@@ -17,14 +17,10 @@ public class DivisionTestRo : Division
         using var context = Context.CreateDefault();
         foreach (Device device in context) Console.WriteLine(device);
         
-        #if DEBUG
-        using var accelerator = context.CreateCPUAccelerator(0);
-        #else
+        // using var accelerator = context.CreateCPUAccelerator(0);
         using var accelerator = context.CreateCudaAccelerator(0);
-        #endif
         
         accelerator.PrintInformation();
-
         Console.Write($"\nP={P} ro=??? mods=[ ");
         foreach (int i in Modules) Console.Write($"{i}, ");
         Console.WriteLine($"]\n{DateTime.Now.ToLongTimeString()}");
@@ -79,13 +75,25 @@ public class DivisionTestRo : Division
                 
                 var res = bufferRes.GetAsArray1D();
                 failsDiv += (ulong)res.Cast<long>().Sum();
-
+            
                 if (useFast && failsDiv > 0)
                 {
                     failsDiv = 1;
                     break;
                 }
             }
+            // var buffer = accelerator.Allocate1D<ulong>(P);
+            // buffer.MemSetToZero();
+            // if (ro < 64)
+            // {
+            //     var k = calk_k64(ro);
+            //     var kGpu = new FixedArr64(k);
+            //     kernel64((int)P, 0, P, ro, Modules.Length, modulesGpu, kGpu, buffer.View);
+            // }
+            // accelerator.Synchronize();
+            // var res = buffer.GetAsArray1D();
+            // failsDiv += (ulong)res.Cast<long>().Sum();
+            // buffer.Dispose();
             
             Console.WriteLine($"Ro={ro}\tTime={sw.ElapsedMilliseconds} ms \t" +
                               $"Bad={failsDiv} (All={P * P}) \t" +
@@ -110,7 +118,7 @@ public class DivisionTestRo : Division
         {
             ulong Fb = FCalc(b, ro, modLen, modulesGpu, kGpu);
             int bLen = 64 - IntrinsicMath.BitOperations.LeadingZeroCount(Fb);
-
+            
             long res = 0;
             ulong delta = Fa;
             
@@ -122,11 +130,11 @@ public class DivisionTestRo : Division
                 if (delta > deltaTmp)
                     delta = deltaTmp;
                 else
-                    res += 1 << i;
+                    res += 1L << i;
             }
 
             if (res != a / b) failsDiv++;
-            // Group.Barrier();
+            // if (Fb != 0 && ((long)Fa / (long)Fb) != a / b) failsDiv++;  // !!!!!!!!!!!!!!!!!!!
         }
         
         result[index] = failsDiv;
